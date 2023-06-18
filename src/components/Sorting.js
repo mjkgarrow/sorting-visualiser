@@ -24,12 +24,16 @@ export default function Sorting() {
     const [sortAlgo, setSortAlgo] = useState('')
     const [speed, setSpeed] = useState('')
     const [intervalId, setIntervalId] = useState(null);
-    const [isPaused, setIsPaused] = useState(false);
     const [sortVars, setSortVars] = useState(cleanVars)
+    const [isPaused, setIsPaused] = useState(false);
     const [run, setRun] = useState(false)
 
 
     const resetSorting = () => {
+        if (sortAlgo === 'merge' && run) {
+            alert('Sorry, I must wait for mergeSort to finish or refresh page ¯\\_(ツ)_/¯')
+            return
+        }
         clearInterval(intervalId);
         setSortArray(generateArray())
         setIsPaused(false);
@@ -40,13 +44,21 @@ export default function Sorting() {
     };
 
     const pauseSorting = () => {
+        if (sortAlgo === 'merge') {
+            alert('Sorry, I haven\'t implimented that yet')
+            return
+        }
         clearInterval(intervalId);
         setIsPaused(true);
     };
 
     const resumeSorting = () => {
+        if (sortAlgo === 'merge') {
+            alert('Sorry, I haven\'t implimented that yet')
+            return
+        }
         setIsPaused(false);
-        sortingArray(sortVars);
+        sortingArray();
     };
 
     const handleSelect = (event) => {
@@ -64,6 +76,8 @@ export default function Sorting() {
         const arr = [...sortArray];
 
         const bubbleInterval = setInterval(() => {
+            // arr[j + 1].isSwap = false
+            // arr[j].isSwap = false
 
             // If current index is not at end of array
             if (i < arr.length - 1) {
@@ -74,11 +88,16 @@ export default function Sorting() {
 
                     // if the checking value is larger than the next value, swap
                     if (arr[j].value > arr[j + 1].value) {
+
                         var temp = arr[j]
                         arr[j] = arr[j + 1]
                         arr[j + 1] = temp
+
+                        // arr[j + 1].isSwap = true
+                        // arr[j].isSwap = true
                         swapCounter++
                     }
+
 
                     // Iterate checking index
                     j++
@@ -88,7 +107,9 @@ export default function Sorting() {
                     arr[j - 1].isActive = false
                     arr[j - 1].isSwap = true
 
-
+                    if (arr[j - 2]) {
+                        arr[j - 2].isSwap = false
+                    }
                     // Set states
                     setSortArray([...arr])
                     setSortVars({ ...sortVars, i, j, end, swapCounter, checkCounter })
@@ -96,14 +117,15 @@ export default function Sorting() {
 
                     // if check index is at the end, iterate the current index and revert checking index
                 } else {
+                    end = j
+                    i++
+                    j = 0
 
                     // Set the final item to complete, clear active from second final
                     arr[end].isComplete = true
                     arr[end - 1].isActive = false
-
-                    end = j
-                    i++
-                    j = 0
+                    arr[end - 1].isSwap = false
+                    // arr[end - 2].isSwap = false
 
                     setSortVars({ ...sortVars, i, j, end, swapCounter, checkCounter })
                 }
@@ -177,71 +199,98 @@ export default function Sorting() {
     }
 
     // MERGE SORT ALGORITHM
-    async function mergeSort(arr, { start, end, swapCounter, checkCounter }) {
-        arr.forEach(item => item.isActive = false)
+    async function mergeSort(arr, { start, end }) {
+        // Reset any active colour
+        arr.forEach(item => {
+            item.isActive = false
+        })
 
-        checkCounter++
 
-        if (isPaused) {
-            console.log('break')
+        if (start >= end) {
             return
         }
 
-        if (start >= end) {
-            return;
-        }
+        let mid = Math.floor((start + end) / 2)
 
 
-        let mid = Math.floor((start + end) / 2);
+        arr[mid].isActive = true // Midpoint is active
 
-        arr[mid].isActive = true
+        await new Promise(resolve => setTimeout(resolve, speed)) // Timed delay
 
-        console.log(checkCounter)
-        await new Promise(resolve => setTimeout(resolve, speed));
-
-        setSortArray(() => [...arr]);
-        setSortVars({ ...sortVars, start, end, swapCounter, checkCounter });
-
-        await mergeSort(arr, { start, end: mid, swapCounter, checkCounter }); // Sort the left half
-        await mergeSort(arr, { start: mid + 1, end, swapCounter, checkCounter }); // Sort the right half
+        setSortArray(() => [...arr]) // Update sorted array
 
 
-        let leftIndex = start;
-        let rightIndex = mid + 1;
+        await mergeSort(arr, { start, end: mid }) // Sort the left half
+        await mergeSort(arr, { start: mid + 1, end }) // Sort the right half
 
+
+        let leftIndex = start
+        let rightIndex = mid + 1
+
+        // Sort the half
         while (leftIndex <= mid && rightIndex <= end) {
-            await new Promise(resolve => setTimeout(resolve, speed));
 
-            checkCounter++
+            // Set colours
+            for (let index in arr) {
 
+                arr[index].isSwap = false
+
+                if (index < leftIndex) {
+                    arr[index].isComplete = true
+                }
+                if (index > rightIndex) {
+                    arr[index].isComplete = false
+                }
+            }
+
+            // Compare values
             if (arr[leftIndex].value < arr[rightIndex].value) {
+                // iterate to next index
                 leftIndex++;
+
             } else {
+
                 const temp = arr[rightIndex];
 
                 // Shift elements to the right
                 for (let i = rightIndex; i > leftIndex; i--) {
+
+                    // Reset colours
+                    for (let index in arr) {
+                        arr[index].isSwap = false
+                        if (index < leftIndex) {
+                            arr[index].isComplete = true
+                        }
+                        if (index > rightIndex) {
+                            arr[index].isComplete = false
+                        }
+                    }
+
+                    // Set current colours
                     arr[i - 1].isSwap = true;
+                    arr[i - 1].isComplete = false;
                     arr[i].isSwap = true;
-                    arr[i].isActive = false;
+                    arr[i].isComplete = false;
 
+                    // Make swaps
+                    const temp1 = arr[i]
                     arr[i] = arr[i - 1];
+                    arr[i - 1] = temp1
 
-                    swapCounter++
-
+                    // Update sorted array
                     setSortArray(() => [...arr]);
-                    setSortVars({ ...sortVars, start, end, swapCounter, checkCounter });
+
+                    // Timed delay
+                    await new Promise(resolve => setTimeout(resolve, speed));
                 }
 
-                arr[leftIndex] = temp;
+                arr[leftIndex] = temp
 
-                leftIndex++;
-                mid++;
-                rightIndex++;
+                leftIndex++
+                mid++
+                rightIndex++
             }
-            // console.log(checkCounter)
             setSortArray(() => [...arr]);
-            setSortVars({ ...sortVars, start, end, swapCounter, checkCounter });
         }
     }
 
@@ -257,25 +306,17 @@ export default function Sorting() {
                 break;
             case 'merge':
                 setRun(true)
-                mergeSort(sortArray, sortVars)
-                // mergeSort(sortArray, sortVars).then(() => {
-                //     sortArray.forEach(item => item.isComplete = true)
-                //     setSortArray(prev => [...prev])
-                // })
-                break;
-            case 'quick':
+                mergeSort(sortArray, sortVars).then(() => sortArray.forEach(item => item.isComplete = true))
                 break;
             default:
                 break;
         }
     }
 
-
-
     const buttonClass = "w-20 h-fit p-3 bg-emerald-700 rounded-lg text-white hover:bg-emerald-800"
 
     return (
-        <div className='w-1/2 h-1/2 flex flex-col justify-center items-center gap-8'>
+        <div className='sm:w-1/2 h-4/5 sm:h-1/2 flex flex-col justify-center items-center gap-8'>
             <h1 className='text-white font-bold text-3xl'>Sorting Visualiser</h1>
             <div className='bg-emerald-900 shadow-2xl px-2 overflow-hidden shadow-slate-600 w-full h-full max-w-3xl max-h-xl flex items-end rounded-xl'>
                 {sortArray.map((value, index) =>
@@ -283,7 +324,7 @@ export default function Sorting() {
                 )}
             </div>
             <div className='flex flex-col items-center justify-center gap-2'>
-                <div className='flex items-center justify-center gap-4'>
+                <div className='flex flex-col items-center justify-center gap-4 sm:flex-row'>
                     <button className={buttonClass}
                         onClick={resetSorting}>
                         Reset
@@ -293,7 +334,6 @@ export default function Sorting() {
                         <option value="bubble">Bubble sort</option>
                         <option value="selection">Selection sort</option>
                         <option value="merge">Merge sort</option>
-                        <option value="quick">Quick sort</option>
                     </select>
                     <select name='speedSelect' value={speed} onChange={handleSpeed} className='bg-transparent p-2 text-white'>
                         <option disabled value="">Select speed</option>
