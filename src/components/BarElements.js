@@ -17,6 +17,6 @@ export default function BarElements({ height, isActive, isSwap, isComplete }) {
 
 
     return (
-        <div className={`w-full ${changeColour()} border border-black`} style={{ "height": `${height}%`, }}></div>
+        <div className={`w-full ${changeColour()} border border-emerald-900`} style={{ "height": `${height}%`, }}></div>
     )
 }
